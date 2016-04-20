@@ -365,9 +365,9 @@ void read_problem(const char *filename)
 	elements = 0;
 	max_line_len = 1024;
 	line = Malloc(char,max_line_len);
-	while(readline(fp)!=NULL)
+	/*while(readline(fp)!=NULL)
 	{
-		char *p = strtok(line," \t"); // label
+		char *p = strtok(line," \t"); // label, 分割字符串来分别统计
 
 		// features
 		while(1)
@@ -380,7 +380,10 @@ void read_problem(const char *filename)
 		elements++; // for bias term
 		prob.l++;
 	}
-	rewind(fp);
+	rewind(fp);*/
+
+	prob.l = 257331;
+	elements = 31409805;
 
 	prob.bias=bias;
 
@@ -394,15 +397,21 @@ void read_problem(const char *filename)
 	{
 		inst_max_index = 0; // strtol gives 0 if wrong format
 		readline(fp);
-		prob.x[i] = &x_space[j];
+		prob.x[i] = &x_space[j]; //多维特征指针
 		label = strtok(line," \t\n");
 		if(label == NULL) // empty line
 			exit_input_error(i+1);
 
-		prob.y[i] = strtod(label,&endptr);
-		if(endptr == label || *endptr != '\0')
-			exit_input_error(i+1);
+		// prob.y[i] = strtod(label,&endptr);
+		// if(endptr == label || *endptr != '\0')
+		// 	exit_input_error(i+1);
 
+		switch (label[0]) {
+			case 'A': prob.y[i] = 0; break;
+			case 'B': prob.y[i] = 1; break;
+			case 'C': prob.y[i] = 1; break;
+			case 'D': prob.y[i] = 1; break;
+		}
 		while(1)
 		{
 			idx = strtok(NULL,":");

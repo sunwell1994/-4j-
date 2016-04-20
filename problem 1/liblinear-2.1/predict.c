@@ -91,9 +91,15 @@ void do_predict(FILE *input, FILE *output)
 		if(label == NULL) // empty line
 			exit_input_error(total+1);
 
-		target_label = strtod(label,&endptr);
-		if(endptr == label || *endptr != '\0')
-			exit_input_error(total+1);
+		// target_label = strtod(label,&endptr);
+		switch (label[0]) {
+			case 'A': target_label = 0; break;
+			case 'B': target_label = 1; break;
+			case 'C': target_label = 1; break;
+			case 'D': target_label = 1; break;
+		}
+		// if(endptr == label || *endptr != '\0')
+		// 	exit_input_error(total+1);
 
 		while(1)
 		{
