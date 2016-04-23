@@ -4,6 +4,8 @@
 #include <string.h>
 #include <errno.h>
 #include "linear.h"
+const int BLOCK = 4;
+const int sum_pro = BLOCK * BLOCK * 4;
 
 int print_null(const char *s,...) {return 0;}
 
@@ -12,8 +14,10 @@ static int (*info)(const char *fmt,...) = &printf;
 struct feature_node *x;
 int max_nr_attr = 64;
 
-struct model* model_;
+struct model* model_[sum_pro];
 int flag_predict_probability=0;
+// int sum_pro = BLOCK * BLOCK * 4;
+double p_label[sum_pro];
 
 void exit_input_error(int line_num)
 {
@@ -49,11 +53,11 @@ void do_predict(FILE *input, FILE *output)
 	double error = 0;
 	double sump = 0, sumt = 0, sumpp = 0, sumtt = 0, sumpt = 0;
 
-	int nr_class=get_nr_class(model_);
+	int nr_class=get_nr_class(model_[0]);
 	double *prob_estimates=NULL;
 	int j, n;
-	int nr_feature=get_nr_feature(model_);
-	if(model_->bias>=0)
+	int nr_feature=get_nr_feature(model_[0]);
+	if(model_[0]->bias>=0)
 		n=nr_feature+1;
 	else
 		n=nr_feature;
@@ -62,14 +66,14 @@ void do_predict(FILE *input, FILE *output)
 	{
 		int *labels;
 
-		if(!check_probability_model(model_))
+		if(!check_probability_model(model_[0]))
 		{
 			fprintf(stderr, "probability output is only supported for logistic regression\n");
 			exit(1);
 		}
 
 		labels=(int *) malloc(nr_class*sizeof(int));
-		get_labels(model_,labels);
+		get_labels(model_[0],labels);
 		prob_estimates = (double *) malloc(nr_class*sizeof(double));
 		fprintf(output,"labels");
 		for(j=0;j<nr_class;j++)
@@ -100,59 +104,95 @@ void do_predict(FILE *input, FILE *output)
 		}
 		// if(endptr == label || *endptr != '\0')
 		// 	exit_input_error(total+1);
-
-		while(1)
-		{
-			if(i>=max_nr_attr-2)	// need one more for index = -1
+		for (int pid = 0; pid < sum_pro; pid++) {
+			while(1)
 			{
-				max_nr_attr *= 2;
-				x = (struct feature_node *) realloc(x,max_nr_attr*sizeof(struct feature_node));
+				if(i>=max_nr_attr-2)	// need one more for index = -1
+				{
+					max_nr_attr *= 2;
+					x = (struct feature_node *) realloc(x,max_nr_attr*sizeof(struct feature_node));
+				}
+
+				idx = strtok(NULL,":");
+				val = strtok(NULL," \t");
+
+				if(val == NULL)
+					break;
+				errno = 0;
+				x[i].index = (int) strtol(idx,&endptr,10);
+				if(endptr == idx || errno != 0 || *endptr != '\0' || x[i].index <= inst_max_index)
+					exit_input_error(total+1);
+				else
+					inst_max_index = x[i].index;
+
+				errno = 0;
+				x[i].value = strtod(val,&endptr);
+				if(endptr == val || errno != 0 || (*endptr != '\0' && !isspace(*endptr)))
+					exit_input_error(total+1);
+
+				// feature indices larger than those in training are not used
+				if(x[i].index <= nr_feature)
+					++i;
 			}
 
-			idx = strtok(NULL,":");
-			val = strtok(NULL," \t");
+			if(model_[pid]->bias>=0)
+			{
+				x[i].index = n;
+				x[i].value = model_[pid]->bias;
+				i++;
+			}
+			x[i].index = -1;
 
-			if(val == NULL)
-				break;
-			errno = 0;
-			x[i].index = (int) strtol(idx,&endptr,10);
-			if(endptr == idx || errno != 0 || *endptr != '\0' || x[i].index <= inst_max_index)
-				exit_input_error(total+1);
+			if(flag_predict_probability)
+			{
+				int j;
+				predict_label = predict_probability(model_[pid],x,prob_estimates);
+				fprintf(output,"%g",predict_label);
+				for(j=0;j<model_[pid]->nr_class;j++)
+					fprintf(output," %g",prob_estimates[j]);
+				fprintf(output,"\n");
+			}
 			else
-				inst_max_index = x[i].index;
-
-			errno = 0;
-			x[i].value = strtod(val,&endptr);
-			if(endptr == val || errno != 0 || (*endptr != '\0' && !isspace(*endptr)))
-				exit_input_error(total+1);
-
-			// feature indices larger than those in training are not used
-			if(x[i].index <= nr_feature)
-				++i;
+			{
+				p_label[pid] = predict(model_[pid],x);
+				// printf("pid%dhas done\n",pid );
+			}
+		}
+		int count = 0;
+		predict_label = 0;
+		for ( int l = 0; l < BLOCK ; l++) {
+			for (int m = 0;m < BLOCK * 4; m++) {
+				// printf("%f\t", p_label[l * BLOCK + m]);
+				if ( p_label[l * BLOCK + m] == 1) {
+					p_label[l] = 1;
+					// count++;
+				}
+			}
+			if (p_label[l] == 1) {
+				count++;
+			}
+			// if ( p_label[l] == 1) {
+			// 	predict_label = 1;
+			// }
+			// else {
+			// 	predict_label = 0;
+			// }
+			// if (count >0) {
+			// 	predict_label = 1;
+			// }
+			// else {
+			// 	predict_label = 0;
+			// }
 		}
 
-		if(model_->bias>=0)
-		{
-			x[i].index = n;
-			x[i].value = model_->bias;
-			i++;
+		if (count == 0) {
+			predict_label = 0;
+			}
+		else {
+			predict_label = 1;
 		}
-		x[i].index = -1;
-
-		if(flag_predict_probability)
-		{
-			int j;
-			predict_label = predict_probability(model_,x,prob_estimates);
-			fprintf(output,"%g",predict_label);
-			for(j=0;j<model_->nr_class;j++)
-				fprintf(output," %g",prob_estimates[j]);
-			fprintf(output,"\n");
-		}
-		else
-		{
-			predict_label = predict(model_,x);
-			fprintf(output,"%g\n",predict_label);
-		}
+		// /printf("\n");
+		fprintf(output,"%g\n",predict_label);
 
 		if(predict_label == target_label)
 			++correct;
@@ -164,7 +204,7 @@ void do_predict(FILE *input, FILE *output)
 		sumpt += predict_label*target_label;
 		++total;
 	}
-	if(check_regression_model(model_))
+	if(check_regression_model(model_[0]))
 	{
 		info("Mean squared error = %g (regression)\n",error/total);
 		info("Squared correlation coefficient = %g (regression)\n",
@@ -193,6 +233,7 @@ int main(int argc, char **argv)
 {
 	FILE *input, *output;
 	int i;
+	char model_file[1024];
 
 	// parse options
 	for(i=1;i<argc;i++)
@@ -231,15 +272,26 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if((model_=load_model(argv[i+1]))==0)
-	{
-		fprintf(stderr,"can't open model file %s\n",argv[i+1]);
-		exit(1);
+	// if((model_=load_model(argv[i+1]))==0)
+	// {
+	// 	fprintf(stderr,"can't open model file %s\n",argv[i+1]);
+	// 	exit(1);
+	// }
+
+	for ( int pid = 0; pid < sum_pro; pid++) {
+		sprintf(model_file,"%d%s%d%s",pid/(BLOCK * 4) + 1, "_", pid%(BLOCK * 4) + 1,".model");
+		printf("%s\n", model_file);
+		if ((model_[pid] = load_model(model_file)) == 0) {
+			fprintf(stderr,"can't open model file %s\n",argv[i+1]);
+			exit(1);
+		}
 	}
 
 	x = (struct feature_node *) malloc(max_nr_attr*sizeof(struct feature_node));
 	do_predict(input, output);
-	free_and_destroy_model(&model_);
+	for ( int pid = 0; pid < sum_pro; pid++) {
+		free_and_destroy_model(&model_[pid]);
+	}
 	free(line);
 	free(x);
 	fclose(input);

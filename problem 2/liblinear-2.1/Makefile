@@ -17,7 +17,7 @@ lib: linear.o tron.o blas/blas.a
 	$(CXX) $${SHARED_LIB_FLAG} linear.o tron.o blas/blas.a -o liblinear.so.$(SHVER)
 
 train: tron.o linear.o train.c blas/blas.a
-	$(CXX) $(CFLAGS) -o train train.c tron.o linear.o $(LIBS)
+	mpic++ $(CFLAGS) -o train train.c tron.o linear.o $(LIBS)
 
 predict: tron.o linear.o predict.c blas/blas.a
 	$(CXX) $(CFLAGS) -o predict predict.c tron.o linear.o $(LIBS)

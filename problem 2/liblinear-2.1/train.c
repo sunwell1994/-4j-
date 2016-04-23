@@ -5,8 +5,12 @@
 #include <ctype.h>
 #include <errno.h>
 #include "linear.h"
+#include "mpi.h"
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 #define INF HUGE_VAL
+const int BLOCK = 4;
+const int A  = 54334;
+const int NOA = 202997;
 
 void print_null(const char *s) {}
 
@@ -83,7 +87,7 @@ static char* readline(FILE *input)
 }
 
 void parse_command_line(int argc, char **argv, char *input_file_name, char *model_file_name);
-void read_problem(const char *filename);
+void read_problem(const char *filename, int left, int right);
 void do_cross_validation();
 void do_find_parameter_C();
 
@@ -102,17 +106,24 @@ int main(int argc, char **argv)
 {
 	char input_file_name[1024];
 	char model_file_name[1024];
+	char model_file[1024];
 	const char *error_msg;
-
 	parse_command_line(argc, argv, input_file_name, model_file_name);
-	read_problem(input_file_name);
-	error_msg = check_parameter(&prob,&param);
 
-	if(error_msg)
-	{
-		fprintf(stderr,"ERROR: %s\n",error_msg);
-		exit(1);
-	}
+	int pid, total_processes;
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &pid);
+	MPI_Comm_size(MPI_COMM_WORLD, &total_processes);
+	sprintf(model_file,"%d%s%d%s",pid/(BLOCK * 4) + 1, "_", pid%(BLOCK * 4) + 1,".model");
+
+	read_problem(input_file_name, pid/(BLOCK * 4), pid%(BLOCK * 4));
+	// error_msg = check_parameter(&prob,&param);
+
+	// if(error_msg)
+	// {
+	// 	fprintf(stderr,"ERROR: %s\n",error_msg);
+	// 	exit(1);
+	// }
 
 	if (flag_find_C)
 	{
@@ -124,10 +135,14 @@ int main(int argc, char **argv)
 	}
 	else
 	{
+		printf("train pid: %d \n", pid);
+
 		model_=train(&prob, &param);
-		if(save_model(model_file_name, model_))
+		printf("finish train pid: %d \n", pid);
+
+		if(save_model(model_file, model_))
 		{
-			fprintf(stderr,"can't save model to file %s\n",model_file_name);
+			fprintf(stderr,"can't save model to file %s\n",model_file);
 			exit(1);
 		}
 		free_and_destroy_model(&model_);
@@ -137,6 +152,8 @@ int main(int argc, char **argv)
 	free(prob.x);
 	free(x_space);
 	free(line);
+
+	MPI_Finalize();
 
 	return 0;
 }
@@ -347,13 +364,14 @@ void parse_command_line(int argc, char **argv, char *input_file_name, char *mode
 }
 
 // read in a problem (in libsvm format)
-void read_problem(const char *filename)
+void read_problem(const char *filename, int left, int right)
 {
 	int max_index, inst_max_index, i;
 	size_t elements, j;
 	FILE *fp = fopen(filename,"r");
 	char *endptr;
 	char *idx, *val, *label;
+	int left_size, right_size, pt, lStart, rStart;
 
 	if(fp == NULL)
 	{
@@ -363,27 +381,82 @@ void read_problem(const char *filename)
 
 	prob.l = 0;
 	elements = 0;
-	max_line_len = 1024;
+	max_line_len = 4096;
+	left_size = A / BLOCK;
+	right_size = NOA / (BLOCK * 4);
+	lStart = left * left_size;
+	rStart = A + right * right_size;
+	printf("%d-%d : ls%d rs%d LS%d RS%d \n", left, right, left_size, right_size, lStart, rStart);
+
 	line = Malloc(char,max_line_len);
-	/*while(readline(fp)!=NULL)
-	{
-		char *p = strtok(line," \t"); // label, 分割字符串来分别统计
+	
+	// for (pt = 0; pt < lStart; pt++) {
+	// 	readline(fp);
+	// }
+	// fseek(fp, lStart, SEEK_SET);
+	// l_fp = fp;
+	// if (left == BLOCK - 1) {
+	// for ( int m = 0; m < left_size; m++ ){
+	// 	readline(fp);
+	// 	char *p = strtok(line," \t"); // label, 分割字符串来分别统计
 
-		// features
-		while(1)
-		{
-			p = strtok(NULL," \t");
-			if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
-				break;
-			elements++;
-		}
-		elements++; // for bias term
-		prob.l++;
-	}
-	rewind(fp);*/
+	// 	// features
+	// 	while(1)
+	// 	{
+	// 		p = strtok(NULL," \t");
+	// 		if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
+	// 			break;
+	// 		elements++;
+	// 	}
+	// 	elements++; // for bias term
+	// 	// prob.l++;
+	// }
 
-	prob.l = 257331;
-	elements = 31409805;
+	// pt += left_size;
+
+	// for ( ; pt < rStart; pt++) {
+	// 	readline(fp);
+	// }
+	// r_fp = fp;
+	// fseek(fp, rStart, SEEK_SET);
+
+	// for ( int m = 0; m < right_size; m++ ){
+	// 	readline(fp);
+	// 	char *p = strtok(line," \t"); // label, 分割字符串来分别统计
+
+	// 	// features
+	// 	while(1)
+	// 	{
+	// 		p = strtok(NULL," \t");
+	// 		if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
+	// 			break;
+	// 		elements++;
+	// 	}
+	// 	elements++; // for bias term
+	// 	// prob.l++;
+	// }
+
+	prob.l = left_size + right_size;
+	// while(readline(fp)!=NULL)
+	// {
+	// 	char *p = strtok(line," \t"); // label, 分割字符串来分别统计
+
+	// 	// features
+	// 	while(1)
+	// 	{
+	// 		p = strtok(NULL," \t");
+	// 		if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
+	// 			break;
+	// 		elements++;
+	// 	}
+	// 	elements++; // for bias term
+	// 	prob.l++;
+	// }
+	// rewind(fp);
+
+	// prob.l = 257331;
+	elements = 20000000;
+	// printf("pid:%d   %d\n", left * 1 + right, elements);
 
 	prob.bias=bias;
 
@@ -393,10 +466,26 @@ void read_problem(const char *filename)
 
 	max_index = 0;
 	j=0;
+	// printf("%d-%d : %ld\n", left, right, r_fp - l_fp );
 	for(i=0;i<prob.l;i++)
 	{
 		inst_max_index = 0; // strtol gives 0 if wrong format
+		if(i == 0) {
+			for (pt = 0; pt < lStart; pt++) {
+				readline(fp);
+			}
+		}
+			// fseek(fp, lStart, SEEK_SET);
+		else if (i == left_size) {
+			for (pt += left_size; pt < rStart; pt++) {
+				readline(fp);
+			}
+		}
+			// fseek(fp, rStart, SEEK_SET);
+			
 		readline(fp);
+		// if (i == left_size) printf("%d-%d : %s\n", left, right, line );
+
 		prob.x[i] = &x_space[j]; //多维特征指针
 		label = strtok(line," \t\n");
 		if(label == NULL) // empty line
@@ -405,13 +494,15 @@ void read_problem(const char *filename)
 		// prob.y[i] = strtod(label,&endptr);
 		// if(endptr == label || *endptr != '\0')
 		// 	exit_input_error(i+1);
-
+		// if (i > left_size - 5 && i < left_size + 5) printf("%d-%d : %c\n", left, right, label[0] );
 		switch (label[0]) {
 			case 'A': prob.y[i] = 0; break;
 			case 'B': prob.y[i] = 1; break;
 			case 'C': prob.y[i] = 1; break;
 			case 'D': prob.y[i] = 1; break;
 		}
+
+		// if (i > prob.l - 30000) printf("%d : begin while%d\n", left * 1 + right, i );
 		while(1)
 		{
 			idx = strtok(NULL,":");
@@ -434,6 +525,8 @@ void read_problem(const char *filename)
 
 			++j;
 		}
+		// if (i > prob.l - 30000) printf("%d : end%d\n", left * 1 + right, i );
+
 
 		if(inst_max_index > max_index)
 			max_index = inst_max_index;
@@ -442,6 +535,8 @@ void read_problem(const char *filename)
 			x_space[j++].value = prob.bias;
 
 		x_space[j++].index = -1;
+		// if (i > prob.l - 30000) printf("%d : trueend%d\n", left * 1 + right, i );
+
 	}
 
 	if(prob.bias >= 0)
