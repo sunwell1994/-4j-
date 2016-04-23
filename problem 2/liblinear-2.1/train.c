@@ -8,7 +8,7 @@
 #include "mpi.h"
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 #define INF HUGE_VAL
-const int BLOCK = 4;
+const int BLOCK = 2;
 const int A  = 54334;
 const int NOA = 202997;
 

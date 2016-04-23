@@ -4,7 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include "linear.h"
-const int BLOCK = 4;
+const int BLOCK = 2;
 const int sum_pro = BLOCK * BLOCK * 4;
 
 int print_null(const char *s,...) {return 0;}
