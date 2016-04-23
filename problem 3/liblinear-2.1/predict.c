@@ -4,8 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include "linear.h"
-const int BLOCK = 2;
-const int sum_pro = BLOCK * BLOCK * 4;
+const int sum_pro = 945;
 
 int print_null(const char *s,...) {return 0;}
 
@@ -96,15 +95,15 @@ void do_predict(FILE *input, FILE *output)
 			exit_input_error(total+1);
 
 		// target_label = strtod(label,&endptr);
-		switch (label[0]) {
-			case 'A': target_label = 0; break;
-			case 'B': target_label = 1; break;
-			case 'C': target_label = 1; break;
-			case 'D': target_label = 1; break;
+		if(label[0] == 'A') {
+			target_label = 0; 
 		}
+		else {
+			target_label = 1; 
+		}			
 		// if(endptr == label || *endptr != '\0')
 		// 	exit_input_error(total+1);
-		for (int pid = 0; pid < sum_pro; pid++) {
+		// for (int pid = 0; pid < sum_pro; pid++) {
 			while(1)
 			{
 				if(i>=max_nr_attr-2)	// need one more for index = -1
@@ -135,41 +134,42 @@ void do_predict(FILE *input, FILE *output)
 					++i;
 			}
 
-			if(model_[pid]->bias>=0)
-			{
-				x[i].index = n;
-				x[i].value = model_[pid]->bias;
-				i++;
-			}
+			// if(model_[pid]->bias>=0)
+			// {
+			// 	x[i].index = n;
+			// 	x[i].value = model_[pid]->bias;
+			// 	i++;
+			// }
 			x[i].index = -1;
 
-			if(flag_predict_probability)
-			{
-				int j;
-				predict_label = predict_probability(model_[pid],x,prob_estimates);
-				fprintf(output,"%g",predict_label);
-				for(j=0;j<model_[pid]->nr_class;j++)
-					fprintf(output," %g",prob_estimates[j]);
-				fprintf(output,"\n");
-			}
-			else
-			{
+			// if(flag_predict_probability)
+			// {
+			// 	int j;
+			// 	predict_label = predict_probability(model_[pid],x,prob_estimates);
+			// 	fprintf(output,"%g",predict_label);
+			// 	for(j=0;j<model_[pid]->nr_class;j++)
+			// 		fprintf(output," %g",prob_estimates[j]);
+			// 	fprintf(output,"\n");
+			// }
+			// else
+			// {
+			for (int pid = 0; pid < sum_pro; pid++) {
 				p_label[pid] = predict(model_[pid],x);
 				// printf("pid%dhas done\n",pid );
-			}
+			// }
 		}
 		int count = 0;
-		predict_label = 0;
-		for ( int l = 0; l < BLOCK ; l++) {
-			for (int m = 0;m < BLOCK * 4; m++) {
+		predict_label = 1;
+		for ( int l = 0; l < 15 ; l++) {
+			for (int m = 0;m < 63; m++) {
 				// printf("%f\t", p_label[l * BLOCK + m]);
-				if ( p_label[l * BLOCK + m] == 1) {
+				if ( p_label[l * 63+ m] == 1) {
 					p_label[l] = 1;
 					// count++;
 				}
 			}
-			if (p_label[l] == 1) {
-				count++;
+			if (p_label[l] == 0) {
+				predict_label = 0;
 			}
 			// if ( p_label[l] == 1) {
 			// 	predict_label = 1;
@@ -185,12 +185,12 @@ void do_predict(FILE *input, FILE *output)
 			// }
 		}
 
-		if (count == 0) {
-			predict_label = 0;
-			}
-		else {
-			predict_label = 1;
-		}
+		// if (count == 15) {
+		// 	predict_label = 1;
+		// 	}
+		// else {
+		// 	predict_label = 0;
+		// }
 		// /printf("\n");
 		fprintf(output,"%g\n",predict_label);
 
@@ -279,10 +279,10 @@ int main(int argc, char **argv)
 	// }
 
 	for ( int pid = 0; pid < sum_pro; pid++) {
-		sprintf(model_file,"%d%s%d%s",pid/(BLOCK * 4) + 1, "_", pid%(BLOCK * 4) + 1,".model");
+		sprintf(model_file,"%d%s%d%s",pid/63+ 1, "_", pid%63 + 16,".model");
 		printf("%s\n", model_file);
 		if ((model_[pid] = load_model(model_file)) == 0) {
-			fprintf(stderr,"can't open model file %s\n",argv[i+1]);
+			fprintf(stderr,"can't open model file %s\n",model_file);
 			exit(1);
 		}
 	}

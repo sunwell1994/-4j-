@@ -8,9 +8,6 @@
 #include "mpi.h"
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 #define INF HUGE_VAL
-const int BLOCK = 2;
-const int A  = 54334;
-const int NOA = 202997;
 
 void print_null(const char *s) {}
 
@@ -67,7 +64,7 @@ void exit_input_error(int line_num)
 
 static char *line = NULL;
 static int max_line_len;
-static int start[] = {0, 6622, 7066, 7145, 11812, 11898, 13205, 13357, 14050, 14476, 15575, 15809, 23785, 45114, 45591, 54334, 61344, 62668, 63294, 63494, 67845, 68212, 68888, 70215, 71363, 75731, 78177, 86412, 89150, 90950, 92185, 92966, 93855, 106080, 106530, 107067, 109924, 128683, 131082, 131909, 132249, 148360, 149470, 155152, 156189, 156730, 176919, 180403, 180976, 181020, 181345, 181387, 183056, 185686, 187356, 191187, 191271, 191325, 198360, 220984, 229921, 233923, 234930, 239236, 239246, 239249, 240878, 244199, 248653, 250440, 251148, 251873, 252421, 252994, 253671, 254453, 256719, 256770, 257331}
+static int start[] = {0, 6622, 7066, 7145, 11812, 11898, 13205, 13357, 14050, 14476, 15575, 15809, 23785, 45114, 45591, 54334, 61344, 62668, 63294, 63494, 67845, 68212, 68888, 70215, 71363, 75731, 78177, 86412, 89150, 90950, 92185, 92966, 93855, 106080, 106530, 107067, 109924, 128683, 131082, 131909, 132249, 148360, 149470, 155152, 156189, 156730, 176919, 180403, 180976, 181020, 181345, 181387, 183056, 185686, 187356, 191187, 191271, 191325, 198360, 220984, 229921, 233923, 234930, 239236, 239246, 239249, 240878, 244199, 248653, 250440, 251148, 251873, 252421, 252994, 253671, 254453, 256719, 256770, 257331};
 
 static char* readline(FILE *input)
 {
@@ -91,7 +88,7 @@ void parse_command_line(int argc, char **argv, char *input_file_name, char *mode
 void read_problem(const char *filename, int left, int right);
 void do_cross_validation();
 void do_find_parameter_C();
-void new_train();
+void new_train (char *model_file, char *input_file_name, char *model_file_name, int pid, int right) ;
 
 struct feature_node *x_space;
 struct parameter param;
@@ -117,7 +114,7 @@ int main(int argc, char **argv)
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &pid);
 	MPI_Comm_size(MPI_COMM_WORLD, &total_processes);
-	for ( right = 0; right < 63; right++) {
+	for ( right = 15; right < 78; right++) {
 		new_train(model_file, input_file_name, model_file_name, pid, right);
 	}
 
@@ -373,27 +370,26 @@ void read_problem(const char *filename, int left, int right)
 	FILE *fp = fopen(filename,"r");
 	char *endptr;
 	char *idx, *val, *label;
-	int pt, lStart, rStart;
+	int pt, lStart, rStart, left_size, right_size;
 
 	if(fp == NULL)
 	{
 		fprintf(stderr,"can't open input file %s\n",filename);
 		exit(1);
 	}
-, 
+
 	max_line_len = 4096;
 	
 	lStart = start[left];
 	rStart = start[right];
+	left_size = start[left + 1] - lStart;
+	right_size = start[right + 1] - rStart;
 	// printf("%d-%d : ls%d rs%d LS%d RS%d \n", left, right, left_size, right_size, lStart, rStart);
 
 	line = Malloc(char,max_line_len);
-	
-	
 
 	prob.l = left_size + right_size;
-	
-	elements = 8000000;
+	elements = 10000000;
 
 	prob.bias=bias;
 
@@ -403,6 +399,7 @@ void read_problem(const char *filename, int left, int right)
 
 	max_index = 0;
 	j=0;
+	pt = 0;
 	// printf("%d-%d : %ld\n", left, right, r_fp - l_fp );
 	for(i=0;i<prob.l;i++)
 	{
@@ -418,11 +415,9 @@ void read_problem(const char *filename, int left, int right)
 				readline(fp);
 			}
 		}
-			// fseek(fp, rStart, SEEK_SET);
 			
 		readline(fp);
 		// if (i == left_size) printf("%d-%d : %s\n", left, right, line );
-
 		prob.x[i] = &x_space[j]; //多维特征指针
 		label = strtok(line," \t\n");
 		if(label == NULL) // empty line
