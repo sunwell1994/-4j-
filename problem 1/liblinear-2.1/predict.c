@@ -5,6 +5,8 @@
 #include <errno.h>
 #include "linear.h"
 
+// extern double threshold;
+
 int print_null(const char *s,...) {return 0;}
 
 static int (*info)(const char *fmt,...) = &printf;
@@ -44,6 +46,12 @@ static char* readline(FILE *input)
 
 void do_predict(FILE *input, FILE *output)
 {
+	int TP = 0;
+	int TN = 0;
+	int FP = 0;
+	int FN = 0;
+	FILE *fw = fopen("roc.txt","a");
+
 	int correct = 0;
 	int total = 0;
 	double error = 0;
@@ -154,6 +162,24 @@ void do_predict(FILE *input, FILE *output)
 			fprintf(output,"%g\n",predict_label);
 		}
 
+		if (abs(target_label-1)<1e-6) {
+			if (abs(predict_label-1)<1e-6) {
+				++TP;
+			}
+			else {
+				++FN;
+			}
+		}
+		else {
+			if (abs(predict_label+1)<1e-6) {
+				++TN;
+			}
+			else {
+				++FP;
+			}
+		}
+		
+
 		if(predict_label == target_label)
 			++correct;
 		error += (predict_label-target_label)*(predict_label-target_label);
@@ -172,8 +198,23 @@ void do_predict(FILE *input, FILE *output)
 			((total*sumpp-sump*sump)*(total*sumtt-sumt*sumt))
 			);
 	}
-	else
-		info("Accuracy = %g%% (%d/%d)\n",(double) correct/total*100,correct,total);
+	else {
+		info("Accuracy = %g%% (%d/%d)\n", (double) correct / total * 100, correct, total);
+		info("TPR = %g\n", (double) TP / (TP + FN));
+		info("FPR = %g\n", (double) FP / (FP + TN));
+		double p = (double) TP/(TP+FP);
+		double r = (double) TP/(TP+FN);
+		double lzb_F1 = 2.0*r*p/(r+p);
+		info("F1 = %g\n",lzb_F1);
+		info("TP = %d\n",TP);
+		info("FP = %d\n",FP);
+		info("TN = %d\n",TN);
+		info("FN = %d\n",FN);
+		// fprintf(fw, "%g\n", threshold);
+		fprintf(fw, "%g\n", (double) TP/(TP+FN));
+		fprintf(fw, "%g\n", (double) FP/(FP+TN));
+	}
+		// info("Accuracy = %g%% (%d/%d)\n",(double) correct/total*100,correct,total);
 	if(flag_predict_probability)
 		free(prob_estimates);
 }
