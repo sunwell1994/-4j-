@@ -117,13 +117,6 @@ int main(int argc, char **argv)
 	sprintf(model_file,"%d%s%d%s",pid/(BLOCK * 4) + 1, "_", pid%(BLOCK * 4) + 1,".model");
 
 	read_problem(input_file_name, pid/(BLOCK * 4), pid%(BLOCK * 4));
-	// error_msg = check_parameter(&prob,&param);
-
-	// if(error_msg)
-	// {
-	// 	fprintf(stderr,"ERROR: %s\n",error_msg);
-	// 	exit(1);
-	// }
 
 	if (flag_find_C)
 	{
@@ -390,73 +383,10 @@ void read_problem(const char *filename, int left, int right)
 
 	line = Malloc(char,max_line_len);
 	
-	// for (pt = 0; pt < lStart; pt++) {
-	// 	readline(fp);
-	// }
-	// fseek(fp, lStart, SEEK_SET);
-	// l_fp = fp;
-	// if (left == BLOCK - 1) {
-	// for ( int m = 0; m < left_size; m++ ){
-	// 	readline(fp);
-	// 	char *p = strtok(line," \t"); // label, 分割字符串来分别统计
-
-	// 	// features
-	// 	while(1)
-	// 	{
-	// 		p = strtok(NULL," \t");
-	// 		if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
-	// 			break;
-	// 		elements++;
-	// 	}
-	// 	elements++; // for bias term
-	// 	// prob.l++;
-	// }
-
-	// pt += left_size;
-
-	// for ( ; pt < rStart; pt++) {
-	// 	readline(fp);
-	// }
-	// r_fp = fp;
-	// fseek(fp, rStart, SEEK_SET);
-
-	// for ( int m = 0; m < right_size; m++ ){
-	// 	readline(fp);
-	// 	char *p = strtok(line," \t"); // label, 分割字符串来分别统计
-
-	// 	// features
-	// 	while(1)
-	// 	{
-	// 		p = strtok(NULL," \t");
-	// 		if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
-	// 			break;
-	// 		elements++;
-	// 	}
-	// 	elements++; // for bias term
-	// 	// prob.l++;
-	// }
 
 	prob.l = left_size + right_size;
-	// while(readline(fp)!=NULL)
-	// {
-	// 	char *p = strtok(line," \t"); // label, 分割字符串来分别统计
 
-	// 	// features
-	// 	while(1)
-	// 	{
-	// 		p = strtok(NULL," \t");
-	// 		if(p == NULL || *p == '\n') // check '\n' as ' ' may be after the last feature
-	// 			break;
-	// 		elements++;
-	// 	}
-	// 	elements++; // for bias term
-	// 	prob.l++;
-	// }
-	// rewind(fp);
-
-	// prob.l = 257331;
 	elements = 20000000;
-	// printf("pid:%d   %d\n", left * 1 + right, elements);
 
 	prob.bias=bias;
 
@@ -491,16 +421,18 @@ void read_problem(const char *filename, int left, int right)
 		if(label == NULL) // empty line
 			exit_input_error(i+1);
 
-		// prob.y[i] = strtod(label,&endptr);
-		// if(endptr == label || *endptr != '\0')
-		// 	exit_input_error(i+1);
-		// if (i > left_size - 5 && i < left_size + 5) printf("%d-%d : %c\n", left, right, label[0] );
-		switch (label[0]) {
-			case 'A': prob.y[i] = 0; break;
-			case 'B': prob.y[i] = 1; break;
-			case 'C': prob.y[i] = 1; break;
-			case 'D': prob.y[i] = 1; break;
+		if (label[0] == 'A') {
+			prob.y[i] = 0;
 		}
+		else {
+			prob.y[i] = 1;
+		}
+		// switch (label[0]) {
+		// 	case 'A': prob.y[i] = 0; break;
+		// 	case 'B': prob.y[i] = 1; break;
+		// 	case 'C': prob.y[i] = 1; break;
+		// 	case 'D': prob.y[i] = 1; break;
+		// }
 
 		// if (i > prob.l - 30000) printf("%d : begin while%d\n", left * 1 + right, i );
 		while(1)

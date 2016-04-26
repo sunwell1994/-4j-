@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <time.h>
 #include "linear.h"
 
 // extern double threshold;
@@ -79,10 +80,10 @@ void do_predict(FILE *input, FILE *output)
 		labels=(int *) malloc(nr_class*sizeof(int));
 		get_labels(model_,labels);
 		prob_estimates = (double *) malloc(nr_class*sizeof(double));
-		fprintf(output,"labels");
-		for(j=0;j<nr_class;j++)
-			fprintf(output," %d",labels[j]);
-		fprintf(output,"\n");
+		// fprintf(output,"labels");
+		// for(j=0;j<nr_class;j++)
+		// 	fprintf(output," %d",labels[j]);
+		// fprintf(output,"\n");
 		free(labels);
 	}
 
@@ -151,15 +152,15 @@ void do_predict(FILE *input, FILE *output)
 		{
 			int j;
 			predict_label = predict_probability(model_,x,prob_estimates);
-			fprintf(output,"%g",predict_label);
-			for(j=0;j<model_->nr_class;j++)
-				fprintf(output," %g",prob_estimates[j]);
-			fprintf(output,"\n");
+			// fprintf(output,"%g",predict_label);
+			// for(j=0;j<model_->nr_class;j++)
+			// 	fprintf(output," %g",prob_estimates[j]);
+			// fprintf(output,"\n");
 		}
 		else
 		{
 			predict_label = predict(model_,x);
-			fprintf(output,"%g\n",predict_label);
+			// fprintf(output,"%g\n",predict_label);
 		}
 
 		if (abs(target_label-1)<1e-6) {
@@ -178,7 +179,7 @@ void do_predict(FILE *input, FILE *output)
 				++FP;
 			}
 		}
-		
+
 
 		if(predict_label == target_label)
 			++correct;
@@ -232,6 +233,7 @@ void exit_with_help()
 
 int main(int argc, char **argv)
 {
+
 	FILE *input, *output;
 	int i;
 
@@ -279,12 +281,17 @@ int main(int argc, char **argv)
 	}
 
 	x = (struct feature_node *) malloc(max_nr_attr*sizeof(struct feature_node));
+	clock_t a = clock();
 	do_predict(input, output);
+	clock_t b =clock();
 	free_and_destroy_model(&model_);
 	free(line);
 	free(x);
 	fclose(input);
 	fclose(output);
+
+	printf("Time used: %lf seconds\n", (double)(b - a)/CLOCKS_PER_SEC);
+
 	return 0;
 }
 
