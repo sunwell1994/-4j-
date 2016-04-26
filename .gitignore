@@ -1,0 +1,8 @@
+
+*.model
+
+problem 2/liblinear-2.1/train
+
+problem 2/liblinear-2.1/predict
+
+problem 2/liblinear-2.1/out.txt

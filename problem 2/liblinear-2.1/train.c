@@ -114,38 +114,41 @@ int main(int argc, char **argv)
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &pid);
 	MPI_Comm_size(MPI_COMM_WORLD, &total_processes);
-	sprintf(model_file,"%d%s%d%s",pid/(BLOCK * 4) + 1, "_", pid%(BLOCK * 4) + 1,".model");
 
-	read_problem(input_file_name, pid/(BLOCK * 4), pid%(BLOCK * 4));
 
-	if (flag_find_C)
-	{
-		do_find_parameter_C();
-	}
-	else if(flag_cross_validation)
-	{
-		do_cross_validation();
-	}
-	else
-	{
-		printf("train pid: %d \n", pid);
+	for (int lf = 0; lf < BLOCK; lf++) {
+		sprintf(model_file,"L%d%s%d%s",lf + 1, "_R", pid + 1,".model");
+		read_problem(input_file_name, lf, pid);
 
-		model_=train(&prob, &param);
-		printf("finish train pid: %d \n", pid);
-
-		if(save_model(model_file, model_))
+		if (flag_find_C)
 		{
-			fprintf(stderr,"can't save model to file %s\n",model_file);
-			exit(1);
+			do_find_parameter_C();
 		}
-		free_and_destroy_model(&model_);
-	}
-	destroy_param(&param);
-	free(prob.y);
-	free(prob.x);
-	free(x_space);
-	free(line);
+		else if(flag_cross_validation)
+		{
+			do_cross_validation();
+		}
+		else
+		{
+			printf("train pid: %d \n", pid);
 
+			model_=train(&prob, &param);
+			printf("finish train pid: %d \n", pid);
+
+			if(save_model(model_file, model_))
+			{
+				fprintf(stderr,"can't save model to file %s\n",model_file);
+				exit(1);
+			}
+			free_and_destroy_model(&model_);
+		}
+		destroy_param(&param);
+		free(prob.y);
+		free(prob.x);
+		free(x_space);
+		free(line);
+	}
+	
 	MPI_Finalize();
 
 	return 0;
@@ -434,9 +437,7 @@ void read_problem(const char *filename, int left, int right)
 		// 	case 'D': prob.y[i] = 1; break;
 		// }
 
-		// if (i > prob.l - 30000) printf("%d : begin while%d\n", left * 1 + right, i );
-		while(1)
-		{
+		while(1) {
 			idx = strtok(NULL,":");
 			val = strtok(NULL," \t");
 

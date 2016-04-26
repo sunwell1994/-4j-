@@ -165,10 +165,12 @@ void do_predict(FILE *input, FILE *output)
 				// printf("%f\t", p_label[l * BLOCK + m]);
 				if ( p_label[l * BLOCK + m] == 1) {
 					p_label[l] = 1;
+					// break;
+					// p_label[l]++;
 					// count++;
 				}
 			}
-			if (p_label[l] == 1) {
+			if (p_label[l] == 0) {
 				count++;
 			}
 			// if ( p_label[l] == 1) {
@@ -185,7 +187,7 @@ void do_predict(FILE *input, FILE *output)
 			// }
 		}
 
-		if (count == 0) {
+		if (count > 0 ) {
 			predict_label = 0;
 			}
 		else {
@@ -279,7 +281,7 @@ int main(int argc, char **argv)
 	// }
 
 	for ( int pid = 0; pid < sum_pro; pid++) {
-		sprintf(model_file,"%d%s%d%s",pid/(BLOCK * 4) + 1, "_", pid%(BLOCK * 4) + 1,".model");
+		sprintf(model_file,"L%d%s%d%s",pid/(BLOCK * 4) + 1, "_R", pid%(BLOCK * 4) + 1,".model");
 		printf("%s\n", model_file);
 		if ((model_[pid] = load_model(model_file)) == 0) {
 			fprintf(stderr,"can't open model file %s\n",argv[i+1]);
