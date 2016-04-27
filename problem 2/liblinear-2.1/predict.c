@@ -4,8 +4,10 @@
 #include <string.h>
 #include <errno.h>
 #include "linear.h"
-const int BLOCK = 2;
-const int sum_pro = BLOCK * BLOCK * 4;
+const int BLOCK = 6;
+const int N = 4;
+const int sum_pro = BLOCK * BLOCK * N;
+
 
 int print_null(const char *s,...) {return 0;}
 
@@ -161,16 +163,16 @@ void do_predict(FILE *input, FILE *output)
 		int count = 0;
 		predict_label = 0;
 		for ( int l = 0; l < BLOCK ; l++) {
-			for (int m = 0;m < BLOCK * 4; m++) {
+			for (int m = 0;m < BLOCK * N; m++) {
 				// printf("%f\t", p_label[l * BLOCK + m]);
 				if ( p_label[l * BLOCK + m] == 1) {
-					p_label[l] = 1;
+					// p_label[l] = 1;
 					// break;
-					// p_label[l]++;
-					// count++;
+					p_label[l]++;
+					// count++;* 4
 				}
 			}
-			if (p_label[l] == 0) {
+			if (p_label[l] < 4) {
 				count++;
 			}
 			// if ( p_label[l] == 1) {
@@ -281,7 +283,7 @@ int main(int argc, char **argv)
 	// }
 
 	for ( int pid = 0; pid < sum_pro; pid++) {
-		sprintf(model_file,"L%d%s%d%s",pid/(BLOCK * 4) + 1, "_R", pid%(BLOCK * 4) + 1,".model");
+		sprintf(model_file,"L%d%s%d%s",pid/(BLOCK * N) + 1, "_R", pid%(BLOCK * N) + 1,".model");
 		printf("%s\n", model_file);
 		if ((model_[pid] = load_model(model_file)) == 0) {
 			fprintf(stderr,"can't open model file %s\n",argv[i+1]);

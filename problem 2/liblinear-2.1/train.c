@@ -8,9 +8,10 @@
 #include "mpi.h"
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 #define INF HUGE_VAL
-const int BLOCK = 2;
+const int BLOCK = 6;
 const int A  = 54334;
 const int NOA = 202997;
+const int N = 4;
 
 void print_null(const char *s) {}
 
@@ -379,7 +380,7 @@ void read_problem(const char *filename, int left, int right)
 	elements = 0;
 	max_line_len = 4096;
 	left_size = A / BLOCK;
-	right_size = NOA / (BLOCK * 4);
+	right_size = NOA / (BLOCK * N);
 	lStart = left * left_size;
 	rStart = A + right * right_size;
 	printf("%d-%d : ls%d rs%d LS%d RS%d \n", left, right, left_size, right_size, lStart, rStart);
