@@ -6,9 +6,10 @@
 #include <errno.h>
 #include "linear.h"
 #include "mpi.h"
+#include "time.h"
 #define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 #define INF HUGE_VAL
-const int BLOCK = 6;
+const int BLOCK = 2;
 const int A  = 54334;
 const int NOA = 202997;
 const int N = 4;
@@ -110,13 +111,15 @@ int main(int argc, char **argv)
 	char model_file[1024];
 	const char *error_msg;
 	parse_command_line(argc, argv, input_file_name, model_file_name);
+	clock_t start = clock();
 
 	int pid, total_processes;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &pid);
 	MPI_Comm_size(MPI_COMM_WORLD, &total_processes);
 
-
+	double starttime, endtime;
+	starttime = MPI_Wtime();
 	for (int lf = 0; lf < BLOCK; lf++) {
 		sprintf(model_file,"L%d%s%d%s",lf + 1, "_R", pid + 1,".model");
 		read_problem(input_file_name, lf, pid);
@@ -149,9 +152,13 @@ int main(int argc, char **argv)
 		free(x_space);
 		free(line);
 	}
-	
+	endtime = MPI_Wtime();
+	printf("%d single exec time  is %lf\n", pid, endtime - starttime);
 	MPI_Finalize();
 
+	clock_t end = clock();
+
+	printf("total train time = %d\n", (double)(end - start)/1000000 );
 	return 0;
 }
 
