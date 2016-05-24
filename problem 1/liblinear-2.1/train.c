@@ -107,48 +107,48 @@ int main(int argc, char **argv)
 	parse_command_line(argc, argv, input_file_name, model_file_name);
 	read_problem(input_file_name);
 
-	 FILE *f = fopen("data.txt","w");
-	 FILE *f1 = fopen("data1.txt","w");
-	for (int ia= 0; ia < 5000; ia++) {
-		 fprintf(f1,"%lf,", prob.y[ia]);
+	//  FILE *f = fopen("data.txt","w");
+	//  FILE *f1 = fopen("data1.txt","w");
+	// for (int ia= 0; ia < 5000; ia++) {
+	// 	 fprintf(f1,"%lf,", prob.y[ia]);
 		
-		for ( int ib = 0; ib <100; ib++) {
-			fprintf(f , "%lf\t", prob.x[ia][ib].value);
-		}
-		fprintf(f, "%lf\n",prob.x[ia][100].value);
-
-	}
-	// error_msg = check_parameter(&prob,&param);
-
-	// if(error_msg)
-	// {
-	// 	fprintf(stderr,"ERROR: %s\n",error_msg);
-	// 	exit(1);
-	// }
-
-	// if (flag_find_C)
-	// {
-	// 	do_find_parameter_C();
-	// }
-	// else if(flag_cross_validation)
-	// {
-	// 	do_cross_validation();
-	// }
-	// else
-	// {
-	// 	model_=train(&prob, &param);
-	// 	if(save_model(model_file_name, model_))
-	// 	{
-	// 		fprintf(stderr,"can't save model to file %s\n",model_file_name);
-	// 		exit(1);
+	// 	for ( int ib = 0; ib <100; ib++) {
+	// 		fprintf(f , "%lf\t", prob.x[ia][ib].value);
 	// 	}
-	// 	free_and_destroy_model(&model_);
+	// 	fprintf(f, "%lf\n",prob.x[ia][100].value);
+
 	// }
-	// destroy_param(&param);
-	// free(prob.y);
-	// free(prob.x);
-	// free(x_space);
-	// free(line);
+	error_msg = check_parameter(&prob,&param);
+
+	if(error_msg)
+	{
+		fprintf(stderr,"ERROR: %s\n",error_msg);
+		exit(1);
+	}
+
+	if (flag_find_C)
+	{
+		do_find_parameter_C();
+	}
+	else if(flag_cross_validation)
+	{
+		do_cross_validation();
+	}
+	else
+	{
+		model_=train(&prob, &param);
+		if(save_model(model_file_name, model_))
+		{
+			fprintf(stderr,"can't save model to file %s\n",model_file_name);
+			exit(1);
+		}
+		free_and_destroy_model(&model_);
+	}
+	destroy_param(&param);
+	free(prob.y);
+	free(prob.x);
+	free(x_space);
+	free(line);
 
 	return 0;
 }
@@ -421,8 +421,8 @@ void read_problem(const char *filename)
 		switch (label[0]) {
 			case 'A': prob.y[i] = 0; break;
 			case 'B': prob.y[i] = 1; break;
-			case 'C': prob.y[i] = 2; break;
-			case 'D': prob.y[i] = 3; break;
+			case 'C': prob.y[i] = 1; break;
+			case 'D': prob.y[i] = 1; break;
 		}
 		while(1)
 		{
